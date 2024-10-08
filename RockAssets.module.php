@@ -219,10 +219,12 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
   /**
    * Return a path that starts with the pw root without a trailing slash
+   *
    * Supports both files and directories.
    * Does not check if the file or directory exists!
    *
    * Examples:
+   *
    * toPath('site/templates')   // /var/www/html/site/templates
    * toPath('site/templates/')  // /var/www/html/site/templates
    * toPath('/site/templates/') // /var/www/html/site/templates
@@ -232,7 +234,9 @@ class RockAssets extends WireData implements Module, ConfigurableModule
   public function toPath(string $path): string
   {
     $path = Paths::normalizeSeparators(trim($path));
-    // if it is a directory we add a slash to compare with root path
+
+    // if it is a directory we add a slash
+    // so that we can later compare with root path
     if (is_dir($path)) $path = rtrim($path, '/') . '/';
 
     $root = wire()->config->paths->root;
@@ -249,8 +253,17 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
   /**
    * Return a url relative to the pw root without a trailing slash
+   *
    * Supports both files and directories.
    * Does not check if the file or directory exists!
+   *
+   * Examples:
+   *
+   * toUrl('site/templates')   // /site/templates
+   * toUrl('site/templates/')  // /site/templates
+   * toUrl('/site/templates/') // /site/templates
+   *
+   * toUrl('/site/ready.php')  // /site/ready.php
    */
   public function toUrl(string $path): string
   {
