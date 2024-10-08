@@ -9,9 +9,6 @@ namespace ProcessWire;
  */
 class RockAssets extends WireData implements Module, ConfigurableModule
 {
-  // for development
-  const forceRecompile = false;
-
   /**
    * Extension of the first added asset
    * to determine whether to render <script> or <link>
