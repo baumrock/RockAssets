@@ -23,8 +23,14 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
   public function init()
   {
+    // attach autoloader
     require_once __DIR__ . "/vendor/autoload.php";
+
+    // init variables
     $this->files = new FilenameArray();
+
+    // hooks
+    wire()->addHookAfter('Modules::refresh', $this, 'resetCache');
   }
 
   /**
@@ -43,12 +49,19 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     return $this;
   }
 
-  public function addAll(string $dir, string $extension = null): self
-  {
+  public function addAll(
+    string $dir,
+    string $extension = null,
+    bool $addDotFiles = false,
+    bool $addUnderscoreFiles = false,
+  ): self {
     $options = $extension
       ? ['extensions' => [$extension]]
       : ['extensions' => ['js', 'css']];
     foreach (wire()->files->find($dir, $options) as $file) {
+      $name = basename($file);
+      if (!$addDotFiles && str_starts_with($name, '.')) continue;
+      if (!$addUnderscoreFiles && str_starts_with($name, '_')) continue;
       $this->add($file);
     }
     return $this;
@@ -125,7 +138,10 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     // if any of the settings changed (like recompile)
     $key = $this->getCacheKey($file, $minify);
     $mCache = (int)wire()->cache->get($key);
+
+    // get the latest modified timestamp from any of the files
     $mFile = filemtime($file);
+    foreach ($this->files as $f) $mFile = max($mFile, filemtime($f));
 
     // if cache is newer we don't need to recompile
     if ($mCache >= $mFile) return false;
@@ -137,6 +153,11 @@ class RockAssets extends WireData implements Module, ConfigurableModule
   public function render(): string
   {
     return "TBD";
+  }
+
+  protected function resetCache(HookEvent $event): void
+  {
+    wire()->cache->delete('rockassets-*');
   }
 
   public function saveIf(
@@ -164,7 +185,10 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
     // update cache
     $key = $this->getCacheKey($file, $minify);
-    wire()->cache->save($key, time());
+    wire()->cache->save($key, time(), WireCache::expireNever);
+
+    // log
+    $this->log("Recompiled $file");
 
     return $this;
   }
