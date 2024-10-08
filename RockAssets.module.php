@@ -41,7 +41,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
   public function add(string $file): self
   {
     // never add files if not in debug mode
-    // see docs about saving files
+    // to save some extra milliseconds
     if (!wire()->config->debug) return $this;
     $file = $this->toPath($file);
     $this->setExtension($file);
@@ -89,16 +89,26 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     ];
   }
 
-  public function filesArray(): array
+  public function filesArray($useUrls = false): array
   {
     $files = [];
-    foreach ($this->files as $file) $files[] = $file;
+    foreach ($this->files as $file) {
+      $files[] = $useUrls ? $this->toUrl($file) : $file;
+    }
     return $files;
+  }
+
+  /**
+   * Files string as used for the cache data
+   */
+  public function filesString($useUrls = true): string
+  {
+    return implode(',', $this->filesArray($useUrls));
   }
 
   private function getCacheKey(string $file, bool $minify): string
   {
-    return 'rockassets-' . $file . ($minify ? '-min' : '');
+    return 'rockassets-' . $this->toUrl($file) . ($minify ? '-min' : '');
   }
 
   /**
@@ -137,7 +147,13 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     // we don't use filemtime because we want to recompile also
     // if any of the settings changed (like recompile)
     $key = $this->getCacheKey($file, $minify);
-    $mCache = (int)wire()->cache->get($key);
+    $cache = (string)wire()->cache->get($key);
+    $parts = explode(':::', $cache, 2);
+    $mCache = (int)$parts[0];
+    $oldFiles = @$parts[1];
+
+    // did files change? eg when a file was removed
+    if ($this->filesString() !== $oldFiles) return true;
 
     // get the latest modified timestamp from any of the files
     $mFile = filemtime($file);
@@ -185,10 +201,12 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
     // update cache
     $key = $this->getCacheKey($file, $minify);
-    wire()->cache->save($key, time(), WireCache::expireNever);
+    $content = time() . ':::' . $this->filesString();
+    wire()->cache->save($key, $content, WireCache::expireNever);
 
     // log
     $this->log("Recompiled $file");
+    if (function_exists('bd')) bd("Recompiled $file", "RockAssets");
 
     return $this;
   }
@@ -209,5 +227,14 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     if (str_starts_with($file, '/wire/')) return $root . ltrim($file, '/');
     if (str_starts_with($file, 'wire/')) return $root . $file;
     throw new WireException("Invalid Path $file");
+  }
+
+  public function toUrl(string $path): string
+  {
+    return str_replace(
+      wire()->config->paths->root,
+      wire()->config->urls->root,
+      $this->toPath($path)
+    );
   }
 }
