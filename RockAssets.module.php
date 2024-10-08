@@ -217,24 +217,48 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     $this->ext = strtoupper(pathinfo($file, PATHINFO_EXTENSION));
   }
 
+  /**
+   * Return a path that starts with the pw root without a trailing slash
+   * Supports both files and directories.
+   * Does not check if the file or directory exists!
+   *
+   * Examples:
+   * toPath('site/templates')   // /var/www/html/site/templates
+   * toPath('site/templates/')  // /var/www/html/site/templates
+   * toPath('/site/templates/') // /var/www/html/site/templates
+   *
+   * toPath('/site/ready.php')  // /var/www/html/site/ready.php
+   */
   public function toPath(string $path): string
   {
-    $path = Paths::normalizeSeparators($path);
+    $path = Paths::normalizeSeparators(trim($path));
+    // if it is a directory we add a slash to compare with root path
+    if (is_dir($path)) $path = rtrim($path, '/') . '/';
+
     $root = wire()->config->paths->root;
-    if (str_starts_with($path, $root)) return $path;
-    if (str_starts_with($path, '/site/')) return $root . ltrim($path, '/');
-    if (str_starts_with($path, 'site/')) return $root . $path;
-    if (str_starts_with($path, '/wire/')) return $root . ltrim($path, '/');
-    if (str_starts_with($path, 'wire/')) return $root . $path;
+    if (!$path) return rtrim($root, '/');
+    if (str_starts_with($path, $root)) return rtrim($path, '/');
+    if (str_starts_with($path, '/site/')) return $root . trim($path, '/');
+    if (str_starts_with($path, 'site/')) return $root . trim($path, '/');
+    if ($path === 'site') return $root . $path;
+    if (str_starts_with($path, '/wire/')) return $root . trim($path, '/');
+    if (str_starts_with($path, 'wire/')) return $root . trim($path, '/');
+    if ($path === 'wire') return $root . $path;
     throw new WireException("Invalid Path $path");
   }
 
+  /**
+   * Return a url relative to the pw root without a trailing slash
+   * Supports both files and directories.
+   * Does not check if the file or directory exists!
+   */
   public function toUrl(string $path): string
   {
-    return str_replace(
+    $path = str_replace(
       wire()->config->paths->root,
       wire()->config->urls->root,
-      $this->toPath($path)
+      $this->toPath($path) . '/'
     );
+    return rtrim($path, '/');
   }
 }
