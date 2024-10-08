@@ -2,6 +2,18 @@
 
 ProcessWire module to merge and minify LESS/SCSS/CSS/JS files via PHP
 
+It can
+
+- merge and minify asset files for your frontend
+- merge and minify asset files for your modules
+
+## Paths
+
+RockAssets allows you to provide paths to your assets in different ways.
+
+- a full path like `/var/www/html/site/templates/scripts/main.js`
+- a path relative to the root like `site/templates/scripts/main.js` starting with either one of: `/site`, `site`, `/wire`, `wire`
+
 ## Quickstart
 
 ```php

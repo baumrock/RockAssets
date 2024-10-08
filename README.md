@@ -2,6 +2,13 @@
 
 ProcessWire module to merge and minify LESS/SCSS/CSS/JS files via PHP
 
+It can
+
+- merge and minify asset files for your frontend
+- merge and minify asset files for your modules
+
+And much more!
+
 ## Quickstart
 
 ```php
@@ -16,6 +23,8 @@ $assets
     minify: false,
   )
   ->saveTo('/site/templates/bundle/main.min.js')
+
+  // render <script> or <link> tag based on added assets
   ->render(
     // if not provided will render the last saved file
     file: $config->debug
