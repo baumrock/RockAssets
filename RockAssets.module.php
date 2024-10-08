@@ -2,6 +2,8 @@
 
 namespace ProcessWire;
 
+use MatthiasMullie\Minify\JS;
+
 /**
  * @author Bernhard Baumrock, 08.10.2024
  * @license Licensed under MIT
@@ -21,6 +23,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
   public function init()
   {
+    require_once __DIR__ . "/vendor/autoload.php";
     $this->files = new FilenameArray();
   }
 
@@ -53,12 +56,16 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
   private function compileJS(string $file, bool $minify): self
   {
-    // get merged content
-    $content = $this->mergeFiles();
-
-    // write file to system
-    wire()->files->filePutContents($file, $content);
-
+    if ($minify) {
+      // use minifier
+      $min = new JS();
+      foreach ($this->files as $f) $min->add($f);
+      $min->minify($file);
+    } else {
+      // use custom merge
+      $content = $this->mergeFiles();
+      wire()->files->filePutContents($file, $content);
+    }
     return $this;
   }
 
@@ -95,7 +102,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     $content = "";
     foreach ($this->files as $f) {
       if (!is_file($f)) return "File not found: $f";
-      $content .= file_get_contents($f) . "\n\n";
+      $content .= file_get_contents($f) . "\n";
     }
     return $content;
   }
