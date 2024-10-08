@@ -217,16 +217,16 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     $this->ext = strtoupper(pathinfo($file, PATHINFO_EXTENSION));
   }
 
-  public function toPath(string $file): string
+  public function toPath(string $path): string
   {
-    $file = Paths::normalizeSeparators($file);
+    $path = Paths::normalizeSeparators($path);
     $root = wire()->config->paths->root;
-    if (str_starts_with($file, $root)) return $file;
-    if (str_starts_with($file, '/site/')) return $root . ltrim($file, '/');
-    if (str_starts_with($file, 'site/')) return $root . $file;
-    if (str_starts_with($file, '/wire/')) return $root . ltrim($file, '/');
-    if (str_starts_with($file, 'wire/')) return $root . $file;
-    throw new WireException("Invalid Path $file");
+    if (str_starts_with($path, $root)) return $path;
+    if (str_starts_with($path, '/site/')) return $root . ltrim($path, '/');
+    if (str_starts_with($path, 'site/')) return $root . $path;
+    if (str_starts_with($path, '/wire/')) return $root . ltrim($path, '/');
+    if (str_starts_with($path, 'wire/')) return $root . $path;
+    throw new WireException("Invalid Path $path");
   }
 
   public function toUrl(string $path): string
