@@ -24,5 +24,3 @@ $assets
     attrs: "defer",
   );
 ```
-
-For more informations please read the docs at https://www.baumrock.com/en/modules/rockassets/docs/.
