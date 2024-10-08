@@ -153,6 +153,9 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     $file = $this->toPath($file);
     if (!$this->recompile($file, $minify)) return $this;
 
+    // make sure the folder exists
+    wire()->files->mkdir(dirname($file));
+
     // recompile file
     if ($this->ext === 'JS') $this->compileJS($file, $minify);
     else {
