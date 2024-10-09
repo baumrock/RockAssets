@@ -44,3 +44,14 @@ $assets
 ```
 
 Note: This method will only add files with the same file extension as the first file added.
+
+## preventMinify
+
+The minification library used is not perfect. For example I wanted to add AlpineJS to the files list, but the minifier broke it even though I already added the minified version of AlpineJS.
+
+To prevent the minifier from re-minifying the file, you can set the `preventMinify` flag to `true`:
+
+```php
+$assets->add('path/to/file.js', preventMinify: true);
+$assets->addAll('path/to/files', preventMinify: true);
+```

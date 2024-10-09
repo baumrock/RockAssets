@@ -21,6 +21,8 @@ class RockAssets extends WireData implements Module, ConfigurableModule
   /** @var FilenameArray */
   private $files;
 
+  private $preventMinify = [];
+
   public function init()
   {
     // attach autoloader
@@ -38,7 +40,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
    * Supports either full paths or paths relative to pw root.
    * Does not check if the added file exists!
    */
-  public function add(string $file): self
+  public function add(string $file, bool $preventMinify = false): self
   {
     // never add files if not in debug mode
     // to save some extra milliseconds
@@ -46,6 +48,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     $file = $this->toPath($file);
     $this->setExtension($file);
     $this->files->add($file);
+    if ($preventMinify) $this->preventMinify[$this->toUrl($file)] = true;
     return $this;
   }
 
@@ -54,6 +57,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     string $extension = null,
     bool $addDotFiles = false,
     bool $addUnderscoreFiles = false,
+    bool $preventMinify = false,
   ): self {
     $options = $extension
       ? ['extensions' => [$extension]]
@@ -62,7 +66,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
       $name = basename($file);
       if (!$addDotFiles && str_starts_with($name, '.')) continue;
       if (!$addUnderscoreFiles && str_starts_with($name, '_')) continue;
-      $this->add($file);
+      $this->add($file, $preventMinify);
     }
     return $this;
   }
@@ -72,8 +76,14 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     if ($minify) {
       // use minifier
       $min = new JS();
-      foreach ($this->files as $f) $min->add($f);
+      foreach ($this->files as $f) {
+        $url = $this->toUrl($f);
+        if (array_key_exists($url, $this->preventMinify)) {
+          $min->add("/*! nominify-$url */");
+        } else $min->add($f);
+      }
       $min->minify($file);
+      $this->replaceNoMinifyTags($file);
     } else {
       // use custom merge
       $content = $this->mergeFiles();
@@ -103,7 +113,9 @@ class RockAssets extends WireData implements Module, ConfigurableModule
    */
   public function filesString($useUrls = true): string
   {
-    return implode(',', $this->filesArray($useUrls));
+    // add info about prevented minify files
+    $prevent = "::prevent::" . implode(',', array_keys($this->preventMinify));
+    return implode(',', $this->filesArray($useUrls)) . $prevent;
   }
 
   private function getCacheKey(string $file, bool $minify): string
@@ -169,6 +181,27 @@ class RockAssets extends WireData implements Module, ConfigurableModule
   public function render(): string
   {
     return "TBD";
+  }
+
+  private function replaceNoMinifyTags(string $file): void
+  {
+    // if no items in the array, nothing to do
+    if (!count($this->preventMinify)) return;
+
+    // replace all nominify tags with the original content
+    $content = wire()->files->fileGetContents($file);
+    foreach (array_keys($this->preventMinify) as $url) {
+      $_file = $this->toPath($url);
+      $_content = wire()->files->fileGetContents($_file);
+      $content = str_replace(
+        "/*! nominify-$url */",
+        $_content,
+        $content
+      );
+    }
+
+    // write back to file
+    wire()->files->filePutContents($file, $content);
   }
 
   protected function resetCache(HookEvent $event): void
