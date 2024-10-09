@@ -29,9 +29,6 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     // attach autoloader
     require_once __DIR__ . "/vendor/autoload.php";
 
-    // init variables
-    $this->files = new FilenameArray();
-
     // hooks
     wire()->addHookAfter('Modules::refresh', $this, 'resetCache');
   }
@@ -43,6 +40,9 @@ class RockAssets extends WireData implements Module, ConfigurableModule
    */
   public function add(string $file, bool $preventMinify = false): self
   {
+    // this will work also when init() is not called (eg on first install)
+    $this->files = $this->files ?? new FilenameArray();
+
     // never add files if not in debug mode
     // to save some extra milliseconds
     if (!wire()->config->debug) return $this;
