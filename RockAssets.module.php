@@ -2,6 +2,7 @@
 
 namespace ProcessWire;
 
+use MatthiasMullie\Minify\CSS;
 use MatthiasMullie\Minify\JS;
 
 /**
@@ -62,6 +63,7 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     $options = $extension
       ? ['extensions' => [$extension]]
       : ['extensions' => ['js', 'css']];
+    $dir = $this->toPath($dir);
     foreach (wire()->files->find($dir, $options) as $file) {
       $name = basename($file);
       if (!$addDotFiles && str_starts_with($name, '.')) continue;
@@ -71,11 +73,17 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     return $this;
   }
 
-  private function compileJS(string $file, bool $minify): self
+  private function compile(string $file, bool $minify): self
   {
-    if ($minify) {
-      // use minifier
-      $min = new JS();
+    // no minify? simply merge all files to one
+    if (!$minify) {
+      $content = $this->mergeFiles();
+      wire()->files->filePutContents($file, $content);
+    } else {
+      if ($this->ext === 'JS') $min = new JS();
+      elseif ($this->ext === 'CSS') $min = new CSS();
+      else throw new WireException($this->ext . ' not implemented yet');
+
       foreach ($this->files as $f) {
         $url = $this->toUrl($f);
         if (array_key_exists($url, $this->preventMinify)) {
@@ -84,10 +92,6 @@ class RockAssets extends WireData implements Module, ConfigurableModule
       }
       $min->minify($file);
       $this->replaceNoMinifyTags($file);
-    } else {
-      // use custom merge
-      $content = $this->mergeFiles();
-      wire()->files->filePutContents($file, $content);
     }
     return $this;
   }
@@ -227,10 +231,9 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     wire()->files->mkdir(dirname($file));
 
     // recompile file
-    if ($this->ext === 'JS') $this->compileJS($file, $minify);
-    else {
-      throw new WireException($this->ext . ' not implemented yet');
-    }
+    bd($this->filesArray());
+    if (!$this->ext) throw new WireException("No files added yet");
+    $this->compile($file, $minify);
 
     // update cache
     $key = $this->getCacheKey($file, $minify);
