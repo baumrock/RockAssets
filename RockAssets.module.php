@@ -231,7 +231,6 @@ class RockAssets extends WireData implements Module, ConfigurableModule
     wire()->files->mkdir(dirname($file));
 
     // recompile file
-    bd($this->filesArray());
     if (!$this->ext) throw new WireException("No files added yet");
     $this->compile($file, $minify);
 
@@ -242,7 +241,9 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
     // log
     $this->log("Recompiled $file");
-    if (function_exists('bd')) bd("Recompiled $file", "RockAssets");
+    if (function_exists('bd')) {
+      bd($this->filesArray(), "RockAssets: Recompiled $file");
+    }
 
     return $this;
   }
