@@ -173,7 +173,10 @@ class RockAssets extends WireData implements Module, ConfigurableModule
 
     // get the latest modified timestamp from any of the files
     $mFile = filemtime($file);
-    foreach ($this->files as $f) $mFile = max($mFile, filemtime($f));
+    foreach ($this->files as $f) {
+      if (!is_file($f)) continue;
+      $mFile = max($mFile, filemtime($f));
+    }
 
     // if cache is newer we don't need to recompile
     if ($mCache >= $mFile) return false;
